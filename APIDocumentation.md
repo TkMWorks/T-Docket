@@ -20,20 +20,31 @@ document-storage-app/
 │   │   ├── auth.py                     # Extracts verified sub from JWT claims
 │   │   └── responses.py                # Consistent API Gateway response shape
 │   ├── presign_upload/
-│   │   └── handler.py                  # POST /uploads
+│   │   └── presign_upload.py           # POST /uploads
 │   ├── list_documents/
-│   │   └── handler.py                  # GET /documents
+│   │   └── list_documents.py           # GET /documents
 │   ├── get_document/
-│   │   └── handler.py                  # GET /documents/{documentId}
+│   │   └── get_document.py             # GET /documents/{documentId}
 │   ├── update_annotation/
-│   │   └── handler.py                  # PATCH /documents/{documentId}
+│   │   └── update_annotation.py        # PATCH /documents/{documentId}
 │   └── README.md                       # Runtime, packaging, IAM notes
 │
-├── moderation_pipeline/                # Async pipeline — DESIGNED, not yet coded
-│   ├── s3_event_router/                # Routes staging uploads into Step Functions
-│   ├── pdf_rasterizer/                 # Renders PDF pages to images for Rekognition
-│   ├── promote_document/               # Copies clean files to the final bucket
-│   └── reject_document/                # Deletes staging object, records reason
+├── moderation_pipeline/                # Async pipeline — BUILT
+│   ├── s3_event_router/
+│   │   └── s3_event_router.py          # Starts a Step Functions execution per upload
+│   ├── check_malware_scan/
+│   │   └── check_malware_scan.py       # Polls the GuardDuty scan tag (retried)
+│   ├── moderate_content/
+│   │   ├── moderate_content.py         # Rekognition on images / rasterized PDF pages
+│   │   └── requirements.txt
+│   ├── evaluate_moderation/
+│   │   └── evaluate_moderation.py      # Combines both branches into one verdict
+│   ├── promote_document/
+│   │   └── promote_document.py         # Copies clean files to the final bucket
+│   ├── reject_document/
+│   │   └── reject_document.py          # Deletes staging object, records reason
+│   ├── state_machine.asl.json          # Step Functions definition wiring it together
+│   └── README.md                       # IAM, env vars, poppler layer build notes
 │
 ├── infra/                              # Terraform — NOT YET BUILT
 │   ├── cognito.tf
@@ -182,7 +193,7 @@ Lists documents belonging to the calling user, paginated.
 
 Results are **not** guaranteed to be in upload order — `documentId` is
 a random UUID, not a timestamp. A chronological listing would need a
-GSI on `(userId, uploadedAt)`; see the note in `list_documents/handler.py`.
+GSI on `(userId, uploadedAt)`; see the note in `list_documents/list_documents.py`.
 
 **Errors**
 
